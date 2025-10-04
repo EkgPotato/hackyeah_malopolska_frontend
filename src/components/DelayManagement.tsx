@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, MapPin, Clock, TrendingUp, CheckCircle, XCircle, Plus, Search, Train, Bus, Zap, Navigation } from 'lucide-react';
+import ReportForm from './ReportForm';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -346,7 +347,7 @@ export default function DelayManagement() {
                         r={size + 8}
                         fill={color}
                         opacity="0.2"
-                        className="animate-ping"
+                        className="animate-pulse"
                       />
                     )}
 
@@ -555,121 +556,15 @@ export default function DelayManagement() {
     );
   };
 
-  const ReportForm = () => {
-    const canSubmit = formData.title.length >= 5 && formData.description.length >= 10 && formData.route_id;
-
+  const ReportFormView = () => { 
     return (
-      <div className="mx-auto max-w-2xl rounded-lg bg-white p-6 shadow-md">
-        <h2 className="mb-6 text-2xl font-bold">Report New Incident</h2>
-
-        <div className="space-y-4">
-          <div>
-            <label className="mb-2 block text-sm font-medium">Title</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Brief description of the incident"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="h-24 w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Detailed description of what happened"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium">Incident Type</label>
-              <select
-                value={formData.incident_type}
-                onChange={(e) => setFormData({ ...formData, incident_type: e.target.value })}
-                className="w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="delay">Delay</option>
-                <option value="cancellation">Cancellation</option>
-                <option value="breakdown">Breakdown</option>
-                <option value="crowding">Crowding</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium">Severity</label>
-              <select
-                value={formData.severity}
-                onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                className="w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-2 block text-sm font-medium">Route</label>
-              <select
-                value={formData.route_id}
-                onChange={(e) => setFormData({ ...formData, route_id: e.target.value })}
-                className="w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select a route</option>
-                {routes.map((route) => (
-                  <option key={route.id} value={route.id}>
-                    {route.route_number} - {route.route_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium">Stop (Optional)</label>
-              <select
-                value={formData.stop_id}
-                onChange={(e) => setFormData({ ...formData, stop_id: e.target.value })}
-                className="w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select a stop</option>
-                {stops.map((stop) => (
-                  <option key={stop.id} value={stop.id}>
-                    {stop.stop_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium">Delay (minutes, optional)</label>
-            <input
-              type="number"
-              min="0"
-              value={formData.delay_minutes}
-              onChange={(e) => setFormData({ ...formData, delay_minutes: e.target.value })}
-              className="w-full rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Estimated delay in minutes"
-            />
-          </div>
-
-          <button
-            onClick={() => void handleSubmitIncident()}
-            disabled={loading || !canSubmit}
-            className="w-full rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-          >
-            {loading ? 'Submitting...' : 'Report Incident (+10 points)'}
-          </button>
-        </div>
-      </div>
+      <ReportForm
+        currentUser={currentUser}
+        routes={routes}
+        stops={stops}
+        loading={loading}
+        onSubmit={handleSubmitIncident}
+      />
     );
   };
 
@@ -784,7 +679,7 @@ export default function DelayManagement() {
       <main className="container mx-auto px-4 py-6">
         {activeTab === 'map' && <MapView />}
         {activeTab === 'incidents' && <IncidentsView />}
-        {activeTab === 'report' && <ReportForm />}
+        {activeTab === 'report' && <ReportFormView />}
         {activeTab === 'routes' && <RoutesView />}
       </main>
 
