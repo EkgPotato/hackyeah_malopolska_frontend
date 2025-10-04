@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, MapPin, Clock, TrendingUp, CheckCircle, XCircle, Plus, Search, Train, Bus, Zap } from 'lucide-react';
+import { AlertCircle, MapPin, Clock, TrendingUp, CheckCircle, XCircle, Plus, Search, Train, Bus, Zap, Navigation } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -56,6 +56,15 @@ interface Stats {
   by_severity: Record<string, number>;
 }
 
+// Cracow coordinates
+const CRACOW_CENTER = { lat: 50.0647, lng: 19.9450 };
+const MAP_BOUNDS = {
+  minLat: 50.010,
+  maxLat: 50.110,
+  minLng: 19.850,
+  maxLng: 20.050
+};
+
 export default function DelayManagement() {
   const [activeTab, setActiveTab] = useState<'map' | 'incidents' | 'report' | 'routes'>('map');
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -67,6 +76,7 @@ export default function DelayManagement() {
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('active');
+  const [hoveredIncident, setHoveredIncident] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -196,6 +206,16 @@ export default function DelayManagement() {
     }
   };
 
+  const getSeverityDotColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return '#dc2626';
+      case 'high': return '#ea580c';
+      case 'medium': return '#ca8a04';
+      case 'low': return '#2563eb';
+      default: return '#6b7280';
+    }
+  };
+
   const getTransportIcon = (type: string) => {
     switch (type) {
       case 'train': return <Train className="h-5 w-5" />;
@@ -217,53 +237,240 @@ export default function DelayManagement() {
     return `${Math.floor(diffHours / 24)}d ago`;
   };
 
+  // Convert lat/lng to pixel coordinates for the map
+  const latLngToPixel = (lat: number, lng: number, width: number, height: number) => {
+    const x = ((lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng)) * width;
+    const y = height - ((lat - MAP_BOUNDS.minLat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * height;
+    return { x, y };
+  };
+
+  // Generate random coordinates within Cracow bounds
+  const getRandomCracowLocation = (seed: number) => {
+    // Use seed for consistent random positions
+    const random1 = Math.sin(seed * 12.9898) * 43758.5453;
+    const random2 = Math.sin(seed * 78.233) * 43758.5453;
+
+    const lat = MAP_BOUNDS.minLat + (random1 - Math.floor(random1)) * (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat);
+    const lng = MAP_BOUNDS.minLng + (random2 - Math.floor(random2)) * (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng);
+
+    return { lat, lng };
+  };
+
   const MapView = () => {
-    const filteredStops = stops.filter(stop =>
-      stop.stop_name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const [mapDimensions, setMapDimensions] = useState({ width: 800, height: 600 });
+    const activeIncidents = incidents.filter(inc => inc.status === 'active');
 
     return (
       <div className="space-y-4">
         <div className="rounded-lg bg-white p-4 shadow-md">
-          <div className="mb-4 flex items-center gap-2">
-            <Search className="h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search stops or routes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 rounded-lg border px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Navigation className="h-5 w-5 text-blue-600" />
+              <h2 className="text-lg font-semibold">Cracow, Poland - Live Incident Map</h2>
+            </div>
+            <div className="text-sm text-gray-600">
+              {activeIncidents.length} active incidents
+            </div>
+          </div>
+
+          {/* Map Container */}
+          <div className="relative overflow-hidden rounded-lg border-2 border-gray-300 bg-gradient-to-br from-green-50 to-blue-50">
+            <svg
+              viewBox="0 0 800 600"
+              className="h-auto w-full"
+              style={{ maxHeight: '600px' }}
+              onLoad={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setMapDimensions({ width: rect.width, height: rect.height });
+              }}
+            >
+              {/* Background - Simplified Cracow Map */}
+              <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e5e7eb" strokeWidth="0.5"/>
+                </pattern>
+              </defs>
+
+              <rect width="800" height="600" fill="url(#grid)" />
+
+              {/* Vistula River (simplified) */}
+              <path
+                d="M 450 0 Q 480 150 460 300 Q 440 450 470 600"
+                fill="none"
+                stroke="#93c5fd"
+                strokeWidth="25"
+                opacity="0.4"
+              />
+
+              {/* Main Market Square area */}
+              <rect x="350" y="250" width="80" height="80" fill="#fbbf24" opacity="0.3" rx="4" />
+              <text x="390" y="295" fontSize="10" fill="#92400e" textAnchor="middle" fontWeight="bold">
+                Main Market
+              </text>
+
+              {/* Wawel Castle area */}
+              <circle cx="320" cy="380" r="30" fill="#dc2626" opacity="0.2" />
+              <text x="320" y="385" fontSize="9" fill="#7f1d1d" textAnchor="middle" fontWeight="bold">
+                Wawel
+              </text>
+
+              {/* Kazimierz district */}
+              <rect x="420" y="370" width="70" height="60" fill="#8b5cf6" opacity="0.2" rx="4" />
+              <text x="455" y="405" fontSize="9" fill="#5b21b6" textAnchor="middle" fontWeight="bold">
+                Kazimierz
+              </text>
+
+              {/* Major streets */}
+              <line x1="100" y1="290" x2="700" y2="290" stroke="#9ca3af" strokeWidth="3" opacity="0.5" />
+              <line x1="390" y1="100" x2="390" y2="500" stroke="#9ca3af" strokeWidth="3" opacity="0.5" />
+
+              {/* Railway lines */}
+              <line x1="200" y1="150" x2="600" y2="150" stroke="#6b7280" strokeWidth="2" strokeDasharray="5,5" opacity="0.4" />
+              <line x1="250" y1="450" x2="550" y2="450" stroke="#6b7280" strokeWidth="2" strokeDasharray="5,5" opacity="0.4" />
+
+              {/* Incident markers */}
+              {activeIncidents.map((incident, index) => {
+                const location = getRandomCracowLocation(incident.id);
+                const pos = latLngToPixel(location.lat, location.lng, 800, 600);
+                const color = getSeverityDotColor(incident.severity);
+                const isHovered = hoveredIncident === incident.id;
+                const size = isHovered ? 20 : 14;
+
+                return (
+                  <g key={incident.id}>
+                    {/* Pulsing circle for critical incidents */}
+                    {incident.severity === 'critical' && (
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={size + 8}
+                        fill={color}
+                        opacity="0.2"
+                        className="animate-ping"
+                      />
+                    )}
+
+                    {/* Main marker */}
+                    <circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r={size}
+                      fill={color}
+                      stroke="white"
+                      strokeWidth="2"
+                      opacity={isHovered ? 1 : 0.8}
+                      style={{ cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseEnter={() => setHoveredIncident(incident.id)}
+                      onMouseLeave={() => setHoveredIncident(null)}
+                      onClick={() => setSelectedIncident(incident)}
+                    />
+
+                    {/* Icon in marker */}
+                    <text
+                      x={pos.x}
+                      y={pos.y + 4}
+                      fontSize="10"
+                      fill="white"
+                      textAnchor="middle"
+                      fontWeight="bold"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      !
+                    </text>
+
+                    {/* Tooltip on hover */}
+                    {isHovered && (
+                      <g>
+                        <rect
+                          x={pos.x - 100}
+                          y={pos.y - 60}
+                          width="200"
+                          height="50"
+                          fill="white"
+                          stroke="#e5e7eb"
+                          strokeWidth="2"
+                          rx="4"
+                          style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}
+                        />
+                        <text
+                          x={pos.x}
+                          y={pos.y - 38}
+                          fontSize="11"
+                          fill="#111827"
+                          textAnchor="middle"
+                          fontWeight="bold"
+                        >
+                          {incident.title.substring(0, 30)}
+                        </text>
+                        <text
+                          x={pos.x}
+                          y={pos.y - 25}
+                          fontSize="9"
+                          fill="#6b7280"
+                          textAnchor="middle"
+                        >
+                          {incident.incident_type} • {incident.severity}
+                        </text>
+                        <text
+                          x={pos.x}
+                          y={pos.y - 13}
+                          fontSize="8"
+                          fill="#9ca3af"
+                          textAnchor="middle"
+                        >
+                          {formatTimeAgo(incident.reported_at)}
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap items-center gap-4 rounded-lg bg-gray-50 p-3">
+            <div className="text-sm font-medium text-gray-700">Legend:</div>
+            {[
+              { severity: 'critical', label: 'Critical' },
+              { severity: 'high', label: 'High' },
+              { severity: 'medium', label: 'Medium' },
+              { severity: 'low', label: 'Low' }
+            ].map(({ severity, label }) => (
+              <div key={severity} className="flex items-center gap-2">
+                <div
+                  className="h-3 w-3 rounded-full border-2 border-white"
+                  style={{ backgroundColor: getSeverityDotColor(severity) }}
+                />
+                <span className="text-xs text-gray-600">{label}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredStops.map((stop) => (
-            <div key={stop.id} className="rounded-lg bg-white p-4 shadow-md transition-shadow hover:shadow-lg">
+        {/* Incident List Below Map */}
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {activeIncidents.slice(0, 6).map((incident) => (
+            <div
+              key={incident.id}
+              className={`cursor-pointer rounded-lg bg-white p-4 shadow-md transition-all hover:shadow-lg ${
+                hoveredIncident === incident.id ? 'ring-2 ring-blue-500' : ''
+              }`}
+              onMouseEnter={() => setHoveredIncident(incident.id)}
+              onMouseLeave={() => setHoveredIncident(null)}
+              onClick={() => setSelectedIncident(incident)}
+            >
               <div className="mb-2 flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-semibold">{stop.stop_name}</h3>
-                </div>
-                {stop.nearby_incidents > 0 && (
-                  <span className="rounded-full bg-red-100 px-2 py-1 text-xs text-red-800">
-                    {stop.nearby_incidents} active
-                  </span>
-                )}
+                <span className={`rounded-full border px-2 py-1 text-xs font-medium ${getSeverityColor(incident.severity)}`}>
+                  {incident.severity}
+                </span>
+                <span className="text-xs text-gray-500">{formatTimeAgo(incident.reported_at)}</span>
               </div>
-              <p className="text-sm text-gray-500">
-                {stop.latitude.toFixed(4)}, {stop.longitude.toFixed(4)}
-              </p>
-              <div className="mt-3">
-                {incidents
-                  .filter(inc => inc.stop_id === stop.id && inc.status === 'active')
-                  .slice(0, 2)
-                  .map((incident) => (
-                    <div key={incident.id} className="mt-1 cursor-pointer rounded bg-red-50 p-2 text-xs hover:bg-red-100"
-                      onClick={() => setSelectedIncident(incident)}>
-                      <span className="font-medium">{incident.title}</span>
-                    </div>
-                  ))}
+              <h3 className="mb-1 font-semibold">{incident.title}</h3>
+              <p className="text-xs text-gray-600 line-clamp-2">{incident.description}</p>
+              <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+                <CheckCircle className="h-3 w-3" />
+                <span>{incident.verification_count} verified</span>
               </div>
             </div>
           ))}
