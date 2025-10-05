@@ -1,6 +1,6 @@
 import type { Incident, Route, Stop, Stats, User, IncidentFormData } from './types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = 'https://hackyeah-malopolska-task.vercel.app';
 
 export const api = {
   // Incidents
