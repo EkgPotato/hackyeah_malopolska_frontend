@@ -3,59 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, MapPin, Clock, TrendingUp, CheckCircle, XCircle, Plus, Search, Train, Bus, Zap, Navigation } from 'lucide-react';
 import { ReportForm } from './ReportForm';
+import type { Incident, Route, Stats, Stop, User } from '~/lib/types';
 
 const API_BASE_URL = 'https://hackyeah-malopolska-task.vercel.app';
 
-interface User {
-  id: number;
-  username: string;
-  points: number;
-  created_at: string;
-}
-
-interface Route {
-  id: number;
-  route_number: string;
-  route_name: string;
-  transport_type: string;
-  active_incidents: number;
-}
-
-interface Stop {
-  id: number;
-  stop_name: string;
-  latitude: number;
-  longitude: number;
-  nearby_incidents: number;
-}
-
-interface Incident {
-  id: number;
-  title: string;
-  description: string;
-  incident_type: string;
-  severity: string;
-  status: string;
-  route_id: number;
-  stop_id: number | null;
-  reporter_id: number;
-  delay_minutes: number | null;
-  reported_at: string;
-  resolved_at: string | null;
-  verification_count: number;
-  dispute_count: number;
-  route?: Route;
-  stop?: Stop;
-  reporter?: User;
-}
-
-interface Stats {
-  total_incidents: number;
-  active_incidents: number;
-  resolved_incidents: number;
-  by_type: Record<string, number>;
-  by_severity: Record<string, number>;
-}
 
 // Cracow coordinates
 const CRACOW_CENTER = { lat: 50.0647, lng: 19.9450 };
@@ -559,10 +510,8 @@ export default function DelayManagement() {
   const ReportFormView = () => { 
     return (
       <ReportForm
-        currentUser={currentUser}
         routes={routes}
         stops={stops}
-        loading={loading}
         onSubmit={handleSubmitIncident}
       />
     );
