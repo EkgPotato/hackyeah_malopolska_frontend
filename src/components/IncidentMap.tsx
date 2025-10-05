@@ -19,7 +19,7 @@ export function IncidentMap({ incidents, stops }: IncidentMapProps) {
         if (!mapRef.current) return;
 
         // Initialize map
-        const map = L.map(mapRef.current).setView([52.23, 21.01], 12);
+        const map = L.map(mapRef.current).setView([50.0647, 19.9450], 12);
         mapInstanceRef.current = map;
 
         // Add tile layer
