@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, MapPin, Clock, TrendingUp, CheckCircle, XCircle, Plus, Search, Train, Bus, Zap, Navigation } from 'lucide-react';
-import ReportForm from './ReportForm';
+import { ReportForm } from './ReportForm';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'https://hackyeah-malopolska-task.vercel.app';
 
 interface User {
   id: number;
