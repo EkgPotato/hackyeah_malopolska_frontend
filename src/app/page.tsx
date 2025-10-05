@@ -57,7 +57,7 @@ export default function HomePage() {
           <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
           <p className="text-red-600 mb-4">{error}</p>
           <p className="text-gray-600 text-sm">
-            Make sure the backend API is running on http://localhost:8000
+            Please try refreshing the page or contact support if the issue persists.
           </p>
         </div>
       </div>
